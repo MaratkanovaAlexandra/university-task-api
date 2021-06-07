@@ -1,50 +1,15 @@
-var Connection = require('tedious').Connection;  
-var Request = require('tedious').Request;
-let resp = [];
+import pkg from 'mssql';
 
-var config = {  
-  server: 'localhost', 
-  authentication: {
-      type: 'default',
-      options: {
-          userName: "MainServer",
-          password: 'mainserver123456' 
-      }
-  },
+const sqlConfig = {
+  user: "MainServer",
+  password: "mainserver123456",
+  database: "university-task",
+  server: 'localhost',
   options: {
     port: 1433,
-    database: "university-task"
   }
-};  
-var connection = new Connection(config);  
-connection.on('connect', function(err) {  
-  if (err) throw err;
-
-  console.log("Connected");  
-  executeStatement();
-  console.log(resp)
-});
-
-connection.connect();
-
-function executeStatement() {
-  const request = new Request('SELECT * FROM Persons', (err) => {
-    console.log("Start Request")
-    if (err) {
-      throw err;
-    }
-    console.log('DONE!');
-    console.log(resp)
-    connection.close();
-  });
-
-  request.on('row', (columns) => {
-    let obj = {};
-    columns.forEach((column) => {
-      obj[column.metadata.colName] = column.value;
-    });
-    resp.push(obj);
-  });
-
-  connection.execSql(request); 
 }
+
+await pkg.connect(sqlConfig)
+const result = await pkg.query`select * from Messeges`;
+console.log(result.recordset)
