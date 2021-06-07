@@ -1,5 +1,6 @@
 var Connection = require('tedious').Connection;  
 var Request = require('tedious').Request;
+let resp = [];
 
 var config = {  
   server: 'localhost', 
@@ -21,6 +22,7 @@ connection.on('connect', function(err) {
 
   console.log("Connected");  
   executeStatement();
+  console.log(resp)
 });
 
 connection.connect();
@@ -31,20 +33,18 @@ function executeStatement() {
     if (err) {
       throw err;
     }
-
     console.log('DONE!');
+    console.log(resp)
     connection.close();
   });
 
   request.on('row', (columns) => {
+    let obj = {};
     columns.forEach((column) => {
-      if (column.value === null) {
-        console.log('NULL');
-      } else {
-        console.log(column.value);
-      }
+      obj[column.metadata.colName] = column.value;
     });
+    resp.push(obj);
   });
 
-  connection.execSql(request);  
+  connection.execSql(request); 
 }
