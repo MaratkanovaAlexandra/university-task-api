@@ -44,3 +44,15 @@ fondId INT NOT NULL,
 messege TEXT NOT NULL,
 date DATE NOT NULL,
 );
+
+SELECT name, email FROM People
+SELECT name,locition FROM Fonds
+SELECT perconId,fondId FROM Donations
+
+SELECT People.name, People.email, Fonds.name, Donations.amount, Donations.date
+FROM Donations, People, Fonds
+WHERE (Donations.perconId = People.id) AND (Donations.fondId = Fonds.id)
+
+SELECT Animals.name, Animals.commonName, Fonds.name
+FROM Animals, Fonds
+WHERE Animals.fonsId = Fonds.id
