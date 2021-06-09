@@ -1,13 +1,12 @@
 import { createServer } from 'http';
 import pkg from 'mssql';
 
+
 const requestListener = async function (req, res) {
   res.setHeader("Content-Type", "applocation/json");
 
   const PARAMS = getURLParams(req.url);
-
   if (PARAMS.path === "")  res.end(JSON.stringify({}));
-  let result;
   const sqlConfig = {
     user: "MainServer",
     password: "mainserver123456",
@@ -15,6 +14,7 @@ const requestListener = async function (req, res) {
     server: 'localhost',
     options: {
       port: 1433,
+      enableArithAbort: true,
     }
   }
 
@@ -24,15 +24,22 @@ const requestListener = async function (req, res) {
 
   switch (METHOD) {
     case "GET" :
-      let query = GETQuery(PARAMS);
-      result = await pkg.query(query);
+      const query = GETQuery(PARAMS);
+      const result = await pkg.query(query);
+      console.log(`GET query complite. Status: ${200}`)
+      res.end(JSON.stringify(result.recordset));
       break;
 
     case "POST" :
-      
+      req.on('data', chunk => {
+        POSTQuery(PARAMS, chunk);
+        const result = {};
+        console.log(`POST query complite. Status: ${200}`)
+        res.end(JSON.stringify(result.recordset));
+      })
       break;
   }
-  res.end(JSON.stringify(result.recordset));
+  
 }
 
 const server = createServer(requestListener);
@@ -79,11 +86,35 @@ function GETQuery(PARAMS) {
   if (PARAMS.path[0] == "Donations" ) {
     let result = `SELECT People.name, People.email, Fonds.fondName, Donations.amount, Donations.date FROM Donations JOIN People ON Donations.personId = People.id JOIN Fonds ON Donations.fondId = Fonds.id`;
     if (/\d/.test(PARAMS.path[1])) result += ` WHERE Donations.id = ${PARAMS.path[1]}`;
-    return result + "ORDER BY Donations.date";
+    return result + " ORDER BY Donations.date";
   }
   if (PARAMS.path[0] == "Messeges" ) {
     let result = `SELECT People.name, People.email, Fonds.fondName, Messeges.messege, Messeges.date FROM Messeges JOIN People ON Messeges.personId = People.id JOIN Fonds On Messeges.fondId = Fonds.id`;
     if (/\d/.test(PARAMS.path[1])) result += ` WHERE Messeges.id = ${PARAMS.path[1]}`;
-    return result + "ORDER BY Messeges.date"
+    return result + " ORDER BY Messeges.date";
+  }
+}
+
+async function POSTQuery(PARAMS, data) {
+  const INPUT = JSON.parse(data);
+  const FOND = await pkg.query(`SELECT * FROM Fonds WHERE fondName='${INPUT.fondName}'`);
+  let PERSON = await pkg.query(`SELECT * FROM People WHERE (name='${INPUT.name}') AND (email = '${INPUT.email}')`);
+
+  if (PERSON.recordset.length === 0) {
+    await pkg.query(`INSERT INTO People VALUES ('${INPUT.name}', '${INPUT.email}')`);
+    PERSON = await pkg.query(`SELECT * FROM People WHERE (name='${INPUT.name}') AND (email = '${INPUT.email}')`);
+  }
+  const personId = PERSON.recordset[0].id;
+  const fondId = FOND.recordset[0].id;
+  const date = new Date();
+  const dateStr = `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}`;
+
+  if (PARAMS.path[0] == "Donations") {
+    pkg.query(`INSERT INTO Donations VALUES (${personId}, ${fondId}, ${INPUT.amount}, '${dateStr}')`);
+    return;
+  }
+  if (PARAMS.path[0] == "Messeges") {
+    pkg.query(`INSERT INTO Messeges VALUES (${personId}, ${fondId}, '${INPUT.messege}', '${dateStr}')`);
+    return;
   }
 }
