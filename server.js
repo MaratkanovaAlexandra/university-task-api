@@ -4,6 +4,8 @@ import pkg from 'mssql';
 
 const requestListener = async function (req, res) {
   res.setHeader("Content-Type", "applocation/json");
+  res.setHeader('Access-Control-Allow-Origin', '*');
+res.setHeader('Access-Control-Allow-Headers', 'origin, content-type, accept');
 
   const PARAMS = getURLParams(req.url);
   if (PARAMS.path === "")  res.end(JSON.stringify({}));
@@ -31,6 +33,7 @@ const requestListener = async function (req, res) {
       break;
 
     case "POST" :
+      res.setHeader('Content-Type', 'application/json');
       req.on('data', chunk => {
         POSTQuery(PARAMS, chunk);
         const result = {};
